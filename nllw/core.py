@@ -89,6 +89,7 @@ def load_model(src_langs, nllb_backend: str = 'transformers', nllb_size: str = '
             raise ValueError(f"Unknown language identifier: {lang}")
         converted_src_langs.append(nllb_code)
     
+    nllb_transformers_model_dir = smart_model_download(model_name)
     if nllb_backend == 'ctranslate2':
         if not CTRANSLATE2_AVAILABLE:
             raise ImportError("ctranslate2 is not installed. Install it with: pip install ctranslate2")
@@ -100,7 +101,7 @@ def load_model(src_langs, nllb_backend: str = 'transformers', nllb_size: str = '
         # Get local cache directory for the model
         local_dir = smart_model_download(model_name)
         translator = AutoModelForSeq2SeqLM.from_pretrained(
-            local_dir,
+            nllb_transformers_model_dir,
             local_files_only=get_offline_mode()
         ).to(device)
     else:
@@ -110,7 +111,7 @@ def load_model(src_langs, nllb_backend: str = 'transformers', nllb_size: str = '
     for src_lang in converted_src_langs:
         if src_lang != 'auto':
             tokenizer[src_lang] = AutoTokenizer.from_pretrained(
-                local_dir,
+                nllb_transformers_model_dir,
                 src_lang=src_lang,
                 local_files_only=get_offline_mode()
             )
