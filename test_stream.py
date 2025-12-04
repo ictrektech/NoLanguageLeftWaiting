@@ -1,43 +1,60 @@
-import json
 import asyncio
 import websockets
-from nllw.test_strings import src_0_en
-import time
+import json
 
-# async def test_client():
-#     uri = "ws://localhost:8765"
-#     async with websockets.connect(uri) as ws:
-#         await ws.send("Hello, this is a streaming")
-#         response = await ws.recv()
-#         print(json.loads(response))
-#         await ws.send("translation example in real time.")
-#         response = await ws.recv()
-#         print(json.loads(response))
+async def test_connection():
+    try:
+        # Test English to Chinese
+        uri = "ws://localhost:27100/ws/transcribe?src_lang=en&target_lang=zh"
+        print(f"Connecting to: {uri}")
 
-# asyncio.run(test_client())
+        async with websockets.connect(uri) as ws:
+            print("Connected successfully!")
 
-# async def test_long_text():
-#     uri = "ws://localhost:8765"
-#     for text in src_0_en:
-#         start_time = time.perf_counter()
-#         async with websockets.connect(uri) as ws:
-#             await ws.send(text)
-#             response = await ws.recv()
-#             end_time = time.perf_counter()
-#             print(json.loads(response))
-#         print(f"Processing time for text of length {len(text)}: {end_time - start_time:.4f} seconds")
+            # Send a simple test message
+            test_message = "do you remember that era?"
+            print(f"Sending: {test_message}")
+            await ws.send(test_message)
 
-# asyncio.run(test_long_text())
-
-async def test_long_text():
-    uri = "ws://localhost:8765"
-    async with websockets.connect(uri) as ws:
-        for text in src_0_en:
-            start_time = time.perf_counter()
-            await ws.send(text)
+            # Receive response
             response = await ws.recv()
-            end_time = time.perf_counter()
-            print(json.loads(response))
-            print(f"Processing time for text of length {len(text)}: {end_time - start_time:.4f} seconds")
+            print(f"Received response: {response}")
 
-asyncio.run(test_long_text())
+            # Parse JSON response
+            data = json.loads(response)
+            print(f"Parsed response: {data}")
+
+    except Exception as e:
+        print(f"Error: {type(e).__name__}: {e}")
+
+async def test_reverse():
+    try:
+        # Test Chinese to English
+        uri = "ws://localhost:27100/ws/transcribe?src_lang=zh&target_lang=en"
+        print(f"\nConnecting to: {uri}")
+
+        async with websockets.connect(uri) as ws:
+            print("Connected successfully!")
+
+            # Send a simple test message
+            test_message = "可以用以上命令来测试。"
+            print(f"Sending: {test_message}")
+            await ws.send(test_message)
+
+            # Receive response
+            response = await ws.recv()
+            print(f"Received response: {response}")
+
+            # Parse JSON response
+            data = json.loads(response)
+            print(f"Parsed response: {data}")
+
+    except Exception as e:
+        print(f"Error: {type(e).__name__}: {e}")
+
+async def main():
+    await test_connection()
+    await test_reverse()
+
+if __name__ == "__main__":
+    asyncio.run(main())
