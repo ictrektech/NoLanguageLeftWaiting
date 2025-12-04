@@ -8,6 +8,10 @@ from typing import Tuple, Optional, Dict, Union
 from nllw.timed_text import TimedText
 from nllw.languages import convert_to_nllb_code
 import os
+import re
+
+import jieba
+jieba.initialize()
 
 try:
     import ctranslate2
@@ -212,6 +216,24 @@ class TranslationBackend:
         self.stable_prefix_segments = []
         self.stable_prefix_tokens = torch.tensor([], dtype=torch.int64, device=self.device)
         self.n_remaining_input_punctuation = 0
+        self._init_language_detection()
+
+    def _init_language_detection(self):
+        self.source_lang_is_chinese  = bool(
+            self.source_lang and
+            any(lang in self.source_lang.lower() for lang in ['zh', 'chi', 'zho', 'cn'])
+        )
+
+    def count_words(self, text):
+        if not text.strip():
+            return 0
+
+        if self.source_lang_is_chinese:
+            words = list(jieba.cut(text.strip()))
+            words = [w for w in words if w.strip() and not re.match(r'^\W+$', w)]
+            return len(words)
+
+        return len(text.strip().split())
 
     def _trim(self) -> bool:
         x = 5
@@ -352,8 +374,15 @@ class TranslationBackend:
         # self._trim()
         buffer_text = ''.join([token.text for token in self.input_buffer])
         buffer_text, early_cut = self.handle_input_sentences(buffer_text)
-        word_count = len(buffer_text.strip().split())
-        if word_count < 3:
+        word_count = self.count_words(buffer_text)
+
+        if self.verbose and buffer_text.strip():
+            print(f"\033[36mText: '{buffer_text}' | Word count: {word_count} | Language: {'Chinese' if self.source_lang_is_chinese  else 'Other'}\033[0m")
+
+        min_words = 2 if self.source_lang_is_chinese else 3
+        if word_count < min_words:
+            if self.verbose:
+                print(f"\033[33mWaiting for more words. Current: {word_count}, Required: {min_words}\033[0m")
             return "", ""
 
         tokenized_inputs = self.tokenizer(buffer_text, return_tensors="pt")
