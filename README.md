@@ -19,12 +19,19 @@ docker build \
 
 ## docker run
 ```bash
-docker run --rm -it --gpus all \
-  -v $(pwd):/app \
-  -v /home/ictrek/.cache/huggingface/hub:/root/.cache/huggingface/hub \
-  -w /app \
-  nllw:v1 \
-  bash
+mkdir -p ~/workspace-docker/nllw/cache/huggingface/
+```
+```
+docker rm -f nllw
+```
+```
+docker run --restart unless-stopped -d \
+  --name nllw \
+  --runtime nvidia \
+  --gpus all \
+  -p 8097:8097 \
+  -v ~/workspace-docker/nllw/cache/huggingface/:/root/.cache/huggingface/hub\
+  nllw:v1
 ```
 
 ## nllw demo (package使用方式参考)
