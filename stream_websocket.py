@@ -105,8 +105,8 @@ async def translate_stream(websocket):
 
 
 async def main():
-    logger.info("Streaming translation server running at ws://0.0.0.0:8765/ws/transcribe")
-    async with websockets.serve(translate_stream, "0.0.0.0", 8765):
+    logger.info("Streaming translation server running at ws://0.0.0.0:8097/ws/transcribe")
+    async with websockets.serve(translate_stream, "0.0.0.0", 8097):
         await asyncio.Future()
 
 asyncio.run(main())

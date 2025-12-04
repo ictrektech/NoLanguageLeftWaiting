@@ -5,7 +5,7 @@ import json
 async def test_connection():
     try:
         # Test English to Chinese
-        uri = "ws://localhost:8765/ws/transcribe?src_lang=en&target_lang=zh"
+        uri = "ws://localhost:8097/ws/transcribe?src_lang=en&target_lang=zh"
         print(f"Connecting to: {uri}")
 
         async with websockets.connect(uri) as ws:
@@ -30,7 +30,7 @@ async def test_connection():
 async def test_reverse():
     try:
         # Test Chinese to English
-        uri = "ws://localhost:8765/ws/transcribe?src_lang=zh&target_lang=en"
+        uri = "ws://localhost:8097/ws/transcribe?src_lang=zh&target_lang=en"
         print(f"\nConnecting to: {uri}")
 
         async with websockets.connect(uri) as ws:
