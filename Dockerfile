@@ -25,7 +25,7 @@ RUN cd /tmp/CTranslate2/python && \
     python3 setup.py bdist_wheel && \
     python3 -m pip install --force-reinstall dist/*.whl ${PIP_ARGS}
 
-RUN pip3 install transformers websockets ${PIP_ARGS}
+RUN pip3 install transformers websockets jieba ${PIP_ARGS}
 
 # RUN mkdir -p /root/.cache/huggingface/
 # COPY ./hub /root/.cache/huggingface/hub
@@ -36,5 +36,6 @@ COPY ./stream_websocket.py /opt/ictrek/app/nllw/stream_websocket.py
 COPY ./test_stream.py /opt/ictrek/app/nllw/test_stream.py
 
 # OFFLINE=1 python stream_websocket.py
+EXPOSE 8097
 ENV OFFLINE=1
 CMD ["python", "./stream_websocket.py"]
