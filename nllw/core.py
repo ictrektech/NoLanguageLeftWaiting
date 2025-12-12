@@ -8,7 +8,6 @@ from transformers.cache_utils import EncoderDecoderCache, DynamicCache
 from typing import Tuple, Optional, Dict, Union
 from nllw.timed_text import TimedText
 from nllw.languages import convert_to_nllb_code
-import os
 import re
 
 import jieba
@@ -53,6 +52,7 @@ class TranslationModel:
     backend_type: str = 'transformers'
     nllb_size: str = '600M'
     model_name: str = field(default='')
+    compute_type: str = field(default='auto')
 
     def get_tokenizer(self, input_lang: str) -> AutoTokenizer:
         if not self.tokenizer.get(input_lang):
@@ -65,7 +65,7 @@ class TranslationModel:
         return self.tokenizer[input_lang]
 
 
-def load_model(src_langs, nllb_backend: str = 'transformers', nllb_size: str = '600M'):
+def load_model(src_langs, nllb_backend: str = 'transformers', nllb_size: str = '600M', ctranslate2_compute_type: str = 'auto'):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model_name = f"facebook/nllb-200-distilled-{nllb_size}"
 
@@ -83,7 +83,7 @@ def load_model(src_langs, nllb_backend: str = 'transformers', nllb_size: str = '
         model_basename = f"nllb-200-distilled-{nllb_size}-ctranslate2"
         repo_id = f"entai2965/{model_basename}"
         local_dir = get_model_path(repo_id)
-        translator = ctranslate2.Translator(local_dir, device=device)
+        translator = ctranslate2.Translator(local_dir, device=device, compute_type=ctranslate2_compute_type)
     elif nllb_backend == 'transformers':
         translator = AutoModelForSeq2SeqLM.from_pretrained(
             nllb_transformers_model_dir,

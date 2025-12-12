@@ -6,7 +6,8 @@ model = nllw.load_model(
     src_langs=["eng_Latn","zho_Hans"],
     nllb_backend="ctranslate2",
     # nllb_backend="transformers",
-    nllb_size="600M"
+    nllb_size="600M",
+    ctranslate2_compute_type="int8_bfloat16"
 )
 
 # 中译英翻译器

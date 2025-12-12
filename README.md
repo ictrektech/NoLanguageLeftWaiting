@@ -37,6 +37,9 @@ docker run --restart unless-stopped -d \
 ## nllw demo (package使用方式参考)
 ```bash
 python demo.py
+
+# 翻译耗时测试
+python test_delay.py
 ```
 
 ## websocket 使用方式参考
