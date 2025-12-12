@@ -1,6 +1,6 @@
-FROM swr.cn-southwest-2.myhuaweicloud.com/ictrek/pytorch_py312:jet_latest
+FROM swr.cn-southwest-2.myhuaweicloud.com/ictrek/pytorch_py312:jet_2.7.0 AS builder
 
-WORKDIR /opt/ictrek/app/nllw
+WORKDIR /tmp/ctranslate2
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PIP_NO_CACHE_DIR=1 \
@@ -8,34 +8,58 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONDONTWRITEBYTECODE=1 \
     LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 
-ARG PIP_ARGS="--index-url https://mirrors.aliyun.com/pypi/simple --trusted-host mirrors.aliyun.com --timeout 120 --retries 5 --upgrade-strategy only-if-needed"
+ARG PIP_ARGS="--index-url https://mirrors.aliyun.com/pypi/simple \
+              --trusted-host mirrors.aliyun.com \
+              --timeout 120 --retries 5 \
+              --upgrade-strategy only-if-needed"
+
 ARG PROXY=""
 
+# clone & build CTranslate2
 RUN export HTTPS_PROXY="${PROXY}" && \
-    git clone --recursive https://github.com/OpenNMT/CTranslate2.git /tmp/CTranslate2 && \
-    unset HTTPS_PROXY
-
-RUN cd /tmp/CTranslate2 && \
+    git clone --recursive https://github.com/OpenNMT/CTranslate2.git . && \
+    unset HTTPS_PROXY && \
     mkdir build && cd build && \
-    cmake .. -DWITH_CUDA=ON -DWITH_MKL=OFF -DWITH_CUDNN=ON -DOPENMP_RUNTIME=COMP -DCMAKE_BUILD_TYPE=Release && \
-    make -j 4 && make install
+    cmake .. \
+      -DWITH_CUDA=ON \
+      -DWITH_MKL=OFF \
+      -DWITH_CUDNN=ON \
+      -DOPENMP_RUNTIME=COMP \
+      -DCMAKE_BUILD_TYPE=Release && \
+    make -j$(nproc) && make install
 
-RUN cd /tmp/CTranslate2/python && \
+RUN cd python && \
     pip3 install -r install_requirements.txt ${PIP_ARGS} && \
-    python3 setup.py bdist_wheel && \
-    python3 -m pip install --force-reinstall dist/*.whl ${PIP_ARGS}
+    python3 setup.py bdist_wheel
+
+# -----------------------------------------------------------
+# runtime stage
+# -----------------------------------------------------------
+FROM swr.cn-southwest-2.myhuaweicloud.com/ictrek/pytorch_py312:jet_2.7.0
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PIP_NO_CACHE_DIR=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH \
+    HF_ENDPOINT=https://hf-mirror.com
+
+ARG PIP_ARGS="--index-url https://mirrors.aliyun.com/pypi/simple \
+              --trusted-host mirrors.aliyun.com \
+              --timeout 120 --retries 5 \
+              --upgrade-strategy only-if-needed"
+
+WORKDIR /opt/ictrek/app/nllw
+
+COPY --from=builder /usr/local/lib/libctranslate2.so* /usr/local/lib/
+COPY --from=builder /tmp/ctranslate2/python/dist/*.whl /tmp/
+RUN pip3 install /tmp/*.whl ${PIP_ARGS} && rm -rf /tmp/*
 
 RUN pip3 install transformers websockets jieba ${PIP_ARGS}
 
-# RUN mkdir -p /root/.cache/huggingface/
-# COPY ./hub /root/.cache/huggingface/hub
-
-RUN mkdir -p /opt/ictrek/app/nllw/
 COPY ./nllw /opt/ictrek/app/nllw/nllw
 COPY ./stream_websocket.py /opt/ictrek/app/nllw/stream_websocket.py
 COPY ./test_stream.py /opt/ictrek/app/nllw/test_stream.py
 
-# OFFLINE=1 python stream_websocket.py
 EXPOSE 8097
-ENV OFFLINE=1
 CMD ["python", "./stream_websocket.py"]
