@@ -36,18 +36,14 @@ docker run --restart unless-stopped -d \
 
 ## nllw demo (package使用方式参考)
 ```bash
-# 没有 -v 挂载cache 或没有下载模型，用国内代理下载模型
-HF_ENDPOINT=https://hf-mirror.com python demo.py
-
-# 有模型cache时可以用离线模式
-OFFLINE=1 python demo.py
+python demo.py
 ```
 
 ## websocket 使用方式参考
 ```bash
-HF_ENDPOINT=https://hf-mirror.com python stream_websocket.py
+# 服务端
+python stream_websocket.py
 
-# or
-
-OFFLINE=1 python stream_websocket.py
+# 客户端测试
+python test_stream.py
 ```

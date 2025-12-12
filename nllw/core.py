@@ -1,6 +1,7 @@
 import torch
 import time
 import huggingface_hub
+from huggingface_hub.utils import LocalEntryNotFoundError
 from dataclasses import dataclass, field
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 from transformers.cache_utils import EncoderDecoderCache, DynamicCache
@@ -27,39 +28,21 @@ nllb-200-distilled: pytorch_model.bin : 2.46 GB
 PUNCTUATION_MARKS = {'.', '!', '?', '。', '！', '？'}
 
 
-def get_offline_mode() -> bool:
-    """Get offline mode setting from environment variable OFFLINE."""
-    return os.getenv('OFFLINE', '0').lower() in ('1', 'true', 'yes')
-
-
-def smart_model_download(repo_id: str, **kwargs):
-    """
-    Download model with offline mode support.
-
-    Args:
-        repo_id: Model repository ID
-        **kwargs: Additional arguments for snapshot_download
-
-    Returns:
-        Local directory path of the downloaded model
-
-    Raises:
-        ImportError: If offline mode is enabled and model is not cached locally
-    """
-    offline_mode = get_offline_mode()
-
-    if offline_mode:
-        print(f"Offline mode enabled. Using cached model for {repo_id}")
-        try:
-            return huggingface_hub.snapshot_download(repo_id, local_files_only=True, **kwargs)
-        except Exception:
-            raise ImportError(
-                f"Offline mode is enabled (OFFLINE=1) but model {repo_id} is not cached locally. "
-                f"Please disable offline mode (OFFLINE=0) or ensure the model is cached first."
-            )
-    else:
-        # Online mode - allow downloading
-        return huggingface_hub.snapshot_download(repo_id, local_files_only=False, **kwargs)
+def get_model_path(model_name: str, cache_dir: str = None) -> str:
+    try:
+        path = huggingface_hub.snapshot_download(
+            model_name,
+            local_files_only=True,
+            cache_dir=cache_dir
+        )
+        return path
+    except LocalEntryNotFoundError:
+        path = huggingface_hub.snapshot_download(
+            model_name,
+            local_files_only=False,
+            cache_dir=cache_dir
+        )
+        return path
 
 
 @dataclass
@@ -93,20 +76,18 @@ def load_model(src_langs, nllb_backend: str = 'transformers', nllb_size: str = '
             raise ValueError(f"Unknown language identifier: {lang}")
         converted_src_langs.append(nllb_code)
     
-    nllb_transformers_model_dir = smart_model_download(model_name)
+    nllb_transformers_model_dir = get_model_path(model_name)
     if nllb_backend == 'ctranslate2':
         if not CTRANSLATE2_AVAILABLE:
             raise ImportError("ctranslate2 is not installed. Install it with: pip install ctranslate2")
         model_basename = f"nllb-200-distilled-{nllb_size}-ctranslate2"
         repo_id = f"entai2965/{model_basename}"
-        local_dir = smart_model_download(repo_id)
+        local_dir = get_model_path(repo_id)
         translator = ctranslate2.Translator(local_dir, device=device)
     elif nllb_backend == 'transformers':
-        # Get local cache directory for the model
-        local_dir = smart_model_download(model_name)
         translator = AutoModelForSeq2SeqLM.from_pretrained(
             nllb_transformers_model_dir,
-            local_files_only=get_offline_mode()
+            local_files_only=True
         ).to(device)
     else:
         raise ValueError(f"Unknown backend: {nllb_backend}. Use 'transformers' or 'ctranslate2'")
@@ -117,7 +98,7 @@ def load_model(src_langs, nllb_backend: str = 'transformers', nllb_size: str = '
             tokenizer[src_lang] = AutoTokenizer.from_pretrained(
                 nllb_transformers_model_dir,
                 src_lang=src_lang,
-                local_files_only=get_offline_mode()
+                local_files_only=True
             )
 
     return TranslationModel(
