@@ -68,4 +68,5 @@ nllb-200-distilled-*-ctranslate2/
 *.pkl
 *.csv
 *.gif
+build_test.sh
 
