@@ -6,7 +6,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PIP_NO_CACHE_DIR=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+    LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
 
 ARG PIP_ARGS="--break-system-packages \
               --index-url https://mirrors.aliyun.com/pypi/simple \
@@ -15,29 +15,21 @@ ARG PIP_ARGS="--break-system-packages \
               --upgrade-strategy only-if-needed"
 
 ARG PROXY=""
-ARG CUDA_ARCHS=""
+ARG CUDA_ARCHS
 
-# clone & build CTranslate2
+# clone & build CTranslate2 (SASS-only)
 RUN export HTTPS_PROXY="${PROXY}" && \
     git clone --recursive https://github.com/OpenNMT/CTranslate2.git . && \
     unset HTTPS_PROXY && \
     mkdir -p build && cd build && \
-    \
-    if [ -n "${CUDA_ARCHS}" ]; then \
-      ARCHS="${CUDA_ARCHS}"; \
-      echo "[ctranslate2] Using CUDA_ARCHS=${ARCHS}"; \
-    else \
-      ARCHS="87"; \
-      echo "[ctranslate2] Using fallback CUDA_ARCHS=${ARCHS}"; \
-    fi && \
-    \
+    echo "[ctranslate2] CUDA_ARCHS=${CUDA_ARCHS}" && \
     cmake .. \
       -DWITH_CUDA=ON \
       -DWITH_MKL=OFF \
       -DWITH_CUDNN=ON \
       -DOPENMP_RUNTIME=COMP \
       -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_CUDA_ARCHITECTURES="${CUDA_ARCHS}-real" && \
+      -DCUDA_ARCH_LIST="${CUDA_ARCHS}" && \
     make -j$(nproc) && make install
 
 RUN cd python && \
@@ -53,7 +45,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PIP_NO_CACHE_DIR=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH \
+    LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib \
     HF_ENDPOINT=https://hf-mirror.com
 
 ARG PIP_ARGS="--break-system-packages \
