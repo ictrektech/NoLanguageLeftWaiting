@@ -18,7 +18,7 @@ echo "[build] Detected Jetson model: $MODEL"
 echo "[build] Using CUDA_ARCHS=${CUDA_ARCHS}"
 
 docker build \
-  --build-arg PROXY=http://192.168.1.222:7897 \
+  --build-arg PROXY=http://192.168.1.xxx:xxx \
   --build-arg CUDA_ARCHS="${CUDA_ARCHS}" \
   -t nllw:torch2.8 \
   -f Dockerfile_2.8 \
