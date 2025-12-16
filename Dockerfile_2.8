@@ -37,7 +37,7 @@ RUN export HTTPS_PROXY="${PROXY}" && \
       -DWITH_CUDNN=ON \
       -DOPENMP_RUNTIME=COMP \
       -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_CUDA_ARCHITECTURES="${ARCHS}" && \
+      -DCMAKE_CUDA_ARCHITECTURES="${CUDA_ARCHS}-real" && \
     make -j$(nproc) && make install
 
 RUN cd python && \
